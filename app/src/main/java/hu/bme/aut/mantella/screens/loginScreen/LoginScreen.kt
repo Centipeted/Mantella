@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -92,8 +93,8 @@ fun LoginScreen(
             onClick = viewModel::login,
             enabled = !ui.loading,
             modifier = Modifier
-                .fillMaxWidth()
                 .height(48.dp)
+                .width(192.dp),
         ) {
             if (ui.loading) {
                 CircularProgressIndicator(
@@ -103,7 +104,11 @@ fun LoginScreen(
                         .padding(end = 8.dp)
                 )
             }
-            Text(if (ui.loading) "Logging in…" else "Log in")
+            Text(
+                text = if (ui.loading) "Logging in…" else "Log in",
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.titleMedium
+            )
         }
 
         ui.error?.let { msg ->

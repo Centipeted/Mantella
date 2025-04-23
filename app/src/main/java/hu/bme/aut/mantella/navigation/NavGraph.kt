@@ -11,16 +11,30 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import hu.bme.aut.mantella.screens.loginScreen.LoginScreen
 import hu.bme.aut.mantella.screens.mainScreen.MainScreen
 
-private fun computeStartDestination(ctx: Context): String {
-    val prefs = ctx.getSharedPreferences("credentials", Context.MODE_PRIVATE)
-    val hasCreds = prefs.contains("server") &&
-            prefs.contains("username") &&
-            prefs.contains("token")
+private fun computeStartDestination(context: Context): String {
+    val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
 
-    return if (hasCreds) Screen.MainScreen.route else Screen.LoginScreen.route
+    val prefs = EncryptedSharedPreferences.create(
+        context,
+        "secure_credentials",
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
+    val hasCredentials =
+        prefs.getString("server",   null).isNullOrBlank().not() &&
+        prefs.getString("username", null).isNullOrBlank().not() &&
+        prefs.getString("token",    null).isNullOrBlank().not()
+
+    return if (hasCredentials) Screen.MainScreen.route else Screen.LoginScreen.route
 }
 
 @Composable
@@ -36,7 +50,7 @@ fun NavGraph(
         enterTransition = { fadeIn(tween(500)) },
         exitTransition  = { fadeOut(tween(500)) }
     ) {
-        composable(Screen.MainScreen.route)  { MainScreen() }
+        composable(Screen.MainScreen.route)  { MainScreen(navController) }
         composable(Screen.LoginScreen.route) { LoginScreen(navController) }
     }
 }

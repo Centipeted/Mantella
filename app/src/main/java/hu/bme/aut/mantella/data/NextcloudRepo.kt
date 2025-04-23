@@ -1,6 +1,5 @@
 package hu.bme.aut.mantella.data
 
-import hu.bme.aut.mantella.screens.loginScreen.CredentialStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -8,16 +7,18 @@ import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import okhttp3.*
+import kotlinx.serialization.json.Json
+import hu.bme.aut.mantella.model.CollectivesEmojiResponse
 
 class NextcloudRepo(
     private val credsStore: CredentialStore,
     private val client: OkHttpClient
 ) {
-    suspend fun listRoot(): List<String> = withContext(Dispatchers.IO) {
+    suspend fun listCollectives(): List<String> = withContext(Dispatchers.IO) {
         val creds = credsStore.get() ?: throw IllegalStateException("Missing credentials")
 
         val url  = creds.server.trimEnd('/') +
-                "/remote.php/dav/files/${creds.username}/"
+                "/remote.php/dav/files/${creds.username}/Collectives/"
 
         val body = """
             <?xml version="1.0" encoding="utf-8" ?>
@@ -42,4 +43,26 @@ class NextcloudRepo(
                 .toList()
         }
     }
+
+    suspend fun getCollectivesEmojis(): List<Pair<String, String>> =
+        withContext(Dispatchers.IO) {
+            val creds = credsStore.get() ?: error("Missing credentials")
+            val baseUrl = creds.server.trimEnd('/')
+
+            val request = Request.Builder()
+                .url("$baseUrl/index.php/apps/collectives/_api")
+                .header("OCS-APIREQUEST", "true")
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { resp ->
+                check(resp.isSuccessful) { "HTTP ${resp.code}: ${resp.message}" }
+
+                val body  = resp.body?.string() ?: error("Empty response")
+                val json = Json { ignoreUnknownKeys = true }
+                val parsed = json.decodeFromString<CollectivesEmojiResponse>(body)
+                parsed.data.map { it.name to it.emoji }
+
+            }
+        }
 }

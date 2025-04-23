@@ -1,11 +1,11 @@
 package hu.bme.aut.mantella.di
 
-import MainScreenViewModel
+import hu.bme.aut.mantella.data.AuthInterceptor
+import hu.bme.aut.mantella.data.CredentialStore
 import hu.bme.aut.mantella.data.NextcloudRepo
-import hu.bme.aut.mantella.data.SharedPrefsCredentialStore
-import hu.bme.aut.mantella.screens.loginScreen.AuthInterceptor
-import hu.bme.aut.mantella.screens.loginScreen.CredentialStore
+import hu.bme.aut.mantella.data.SecureCredentialStore
 import hu.bme.aut.mantella.screens.loginScreen.LoginScreenViewModel
+import hu.bme.aut.mantella.screens.mainScreen.MainScreenViewModel
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -13,7 +13,7 @@ import org.koin.dsl.module
 import java.util.concurrent.TimeUnit
 
 val dataModule = module {
-    single<CredentialStore> { SharedPrefsCredentialStore(androidContext()) }
+    single<CredentialStore> { SecureCredentialStore(androidContext()) }
 }
 
 val networkModule = module {
@@ -28,5 +28,5 @@ val networkModule = module {
 
 val viewModelModule = module {
     viewModel { LoginScreenViewModel(get()) }
-    viewModel { MainScreenViewModel(get()) }
+    viewModel { MainScreenViewModel(get(), get()) }
 }

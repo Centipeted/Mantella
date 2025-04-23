@@ -10,4 +10,11 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-val NextCloudBlue = Color(0xFF00679E)
+val NextCloudBlue = Color(0xFF00679e)
+val AdminBackground = Color(0xFFffeab0)
+
+// light
+val LightBackground = Color.White
+
+// dark
+val DarkBackground = Color(0xFF212121)
