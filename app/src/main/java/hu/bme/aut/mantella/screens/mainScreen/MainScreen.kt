@@ -1,7 +1,6 @@
 package hu.bme.aut.mantella.screens.mainScreen
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -21,7 +20,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -52,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,8 +66,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -88,6 +85,11 @@ fun MainScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var accountPageVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadCollectivesFolder()
+        viewModel.cacheCollectivePages()
+    }
 
     Box(
         contentAlignment = Alignment.Center
@@ -168,7 +170,7 @@ fun MainScreen(
                     modifier = Modifier
                         .padding(start = 16.dp, bottom = 16.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .clickable { /* TODO */ }
+                        .clickable { navController.navigate(Screen.NewCollectiveScreen.route) }
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -179,7 +181,7 @@ fun MainScreen(
                         modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = 4.dp)
                     )
                     Text(
-                        text = "New",
+                        text = "New collective",
                         color = Color.White,
                         fontSize = 20.sp,
                         modifier = Modifier.padding(top = 8.dp, bottom = 8.dp, end = 8.dp)
@@ -211,7 +213,11 @@ fun MainScreen(
                             CollectivesListItem(
                                 name  = collective.name,
                                 emoji = collective.emoji,
-                                onClick = { }
+                                onClick = {
+                                    navController.navigate(
+                                        Screen.CollectivePagesScreen.createRoute(collective)
+                                    )
+                                }
                             )
                         }
                     }
@@ -220,88 +226,103 @@ fun MainScreen(
             }
         }
 
-        AnimatedVisibility(
-            visible = accountPageVisible,
-            enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
-            exit = shrinkOut(shrinkTowards = Alignment.TopCenter) + fadeOut(),
+        AccountMenu(
+            accountPageVisible = accountPageVisible,
+            state = state,
+            viewModel = viewModel,
+            navController = navController
+        )
+    }
+}
+
+@Composable
+fun AccountMenu(
+    accountPageVisible: Boolean,
+    state: MainScreenViewModel.UiState,
+    viewModel: MainScreenViewModel,
+    navController: NavController
+) {
+    AnimatedVisibility(
+        visible = accountPageVisible,
+        enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
+        exit = shrinkOut(shrinkTowards = Alignment.TopCenter) + fadeOut(),
+    ) {
+        val lerpColor = if(isSystemInDarkTheme()) Color.White else Color.Black
+        Surface(
+            modifier = Modifier
+                .wrapContentWidth()
+                .wrapContentHeight()
+                .padding(24.dp)
+                .clip(RoundedCornerShape(10.dp)),
+            color = lerp(MaterialTheme.colorScheme.background, lerpColor, 0.2f),
+            shape = RoundedCornerShape(10.dp)
         ) {
-            val lerpColor = if(isSystemInDarkTheme()) Color.White else Color.Black
-            Surface(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .wrapContentHeight()
-                    .padding(24.dp)
-                    .clip(RoundedCornerShape(10.dp)),
-                color = lerp(MaterialTheme.colorScheme.background, lerpColor, 0.2f),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(16.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .padding(16.dp)
+                            .size(48.dp)
+                            .background(AdminBackground, CircleShape)
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(AdminBackground, CircleShape)
-                        ) {
-                            Text(
-                                text = state.usernameFirstLetter.uppercase(),
-                                color = lerp(AdminBackground, Color.Black, 0.3f),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontSize = 20.sp
-                            )
-                        }
-
-                        Spacer(Modifier.width(8.dp))
-
-                        Column {
-                            Text(
-                                text = state.usernameAndAddress.first,
-                                color = MaterialTheme.colorScheme.secondary,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = state.usernameAndAddress.second,
-                                color = MaterialTheme.colorScheme.secondary,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(
-                        color = Color.Gray,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .padding(horizontal = 16.dp)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable {
-                                viewModel.logout()
-                                navController.navigate(Screen.LoginScreen.route)
-                            }
-                            .padding(horizontal = 20.dp, vertical = 12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Log out",
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                        Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Log out",
-                            color = MaterialTheme.colorScheme.secondary,
-                            style = MaterialTheme.typography.bodyLarge
+                            text = state.usernameFirstLetter.uppercase(),
+                            color = lerp(AdminBackground, Color.Black, 0.3f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 20.sp
                         )
                     }
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Column {
+                        Text(
+                            text = state.usernameAndAddress.first,
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = state.usernameAndAddress.second,
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                HorizontalDivider(
+                    color = Color.Gray,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .padding(horizontal = 16.dp)
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            viewModel.logout()
+                            navController.navigate(Screen.LoginScreen.route)
+                        }
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Log out",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Log out",
+                        color = MaterialTheme.colorScheme.secondary,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
             }
         }
@@ -324,6 +345,8 @@ fun CollectivesListItem(
                 color = lerp(MaterialTheme.colorScheme.background, Color.Black, 0.2f),
                 shape = RoundedCornerShape(10.dp)
             )
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onClick() }
     ) {
         Row(
             modifier = modifier

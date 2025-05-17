@@ -2,11 +2,13 @@ package hu.bme.aut.mantella.screens.mainScreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import hu.bme.aut.mantella.data.CollectivePagesCache
+import hu.bme.aut.mantella.data.CollectivePagesCache.clearCache
 import hu.bme.aut.mantella.data.CredentialStore
 import hu.bme.aut.mantella.data.NextcloudApi
 import hu.bme.aut.mantella.data.NextcloudRepo
 import hu.bme.aut.mantella.model.CollectiveWithEmoji
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -21,7 +23,7 @@ class MainScreenViewModel(
     val uiState = _uiState.asStateFlow()
 
     data class UiState(
-        val isLoading: Boolean = false,
+        val isLoading: Boolean = true,
         val error: String? = null,
         val entries: List<CollectiveWithEmoji> = emptyList(),
         val usernameFirstLetter: String = "",
@@ -29,9 +31,12 @@ class MainScreenViewModel(
     )
 
     init {
-        getUsernameFirstLetter()
-        loadCollectivesFolder()
-        getUsernameAndAddress()
+        viewModelScope.launch(Dispatchers.Default) {
+            launch { getUsernameFirstLetter() }
+            launch { getUsernameAndAddress() }
+            launch { loadCollectivesFolder() }
+            launch { cacheCollectivePages() }
+        }
     }
 
     fun loadCollectivesFolder() {
@@ -41,6 +46,8 @@ class MainScreenViewModel(
             runCatching {
                 val names = repo.listCollectives()
                 val emojiMap = repo.getCollectivesEmojis().toMap()
+                val pages = repo.fetchCollectivesWithPages()
+                println("pages: $pages")
                 names.map { name ->
                     CollectiveWithEmoji(
                         name  = name,
@@ -90,6 +97,13 @@ class MainScreenViewModel(
         }
     }
 
+    fun cacheCollectivePages() {
+        viewModelScope.launch {
+            val pages = repo.fetchCollectivesWithPages()
+            CollectivePagesCache.insertCollectives(pages)
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             credentialStore.get()?.let { credentials ->
@@ -98,6 +112,7 @@ class MainScreenViewModel(
             }
 
             credentialStore.clear()
+            clearCache()
 
             _uiState.update {
                 it.copy(

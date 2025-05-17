@@ -91,4 +91,8 @@ dependencies {
     implementation(libs.serialization.json)
     implementation(libs.security.crypto)
 
+    //markdown
+    implementation(libs.md.renderer.core)
+    implementation(libs.md.renderer.m3)
+    implementation(libs.compose.markdown)
 }

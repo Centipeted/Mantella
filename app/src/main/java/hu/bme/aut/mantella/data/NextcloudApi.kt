@@ -25,7 +25,7 @@ object NextcloudApi {
         server: String,
         username: String,
         password: String
-    ): String = kotlinx.coroutines.withContext(Dispatchers.IO) {
+    ): String = withContext(Dispatchers.IO) {
         val url = server.trimEnd('/') + "/ocs/v2.php/core/getapppassword"
 
         val req: Request = Request.Builder()
